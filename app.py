@@ -2,32 +2,11 @@ import streamlit as st
 import whisper
 import torch
 import json
-import os
 from transformers import pipeline
-
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 st.title("AI-Powered Voice Call Analysis")
 
 st.write("Upload an audio file to analyze customer-agent conversations.")
-
-# Load Whisper Model
-@st.cache_resource
-def load_whisper():
-    return whisper.load_model("base")
-
-# Load Phi-3 Mini Model
-@st.cache_resource
-def load_phi3():
-
-    pipe = pipeline(
-        "text-generation",
-        model="microsoft/Phi-3-mini-4k-instruct",
-        device_map="cpu",
-        model_kwargs={"torch_dtype": torch.float32}
-    )
-
-    return pipe
 
 uploaded_file = st.file_uploader(
     "Upload Audio File",
@@ -36,17 +15,18 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    # Save Uploaded Audio
+    # Save uploaded audio
     with open("temp_audio.wav", "wb") as f:
         f.write(uploaded_file.read())
 
-    # Whisper Transcription
+    # Load Whisper
     st.write("Loading Whisper model...")
-    whisper_model = load_whisper()
+    model = whisper.load_model("small")
 
+    # Transcribe Audio
     st.write("Transcribing audio...")
 
-    result = whisper_model.transcribe(
+    result = model.transcribe(
         "temp_audio.wav",
         language="hi",
         task="translate",
@@ -56,11 +36,11 @@ if uploaded_file is not None:
 
     transcript = result["text"]
 
-    # Raw Transcript
+    # Show Raw Transcript
     st.subheader("Raw Transcript")
     st.write(transcript)
 
-    # Format Transcript
+    # Format Transcript with Labels
     lines = transcript.split(".")
 
     formatted_transcript = ""
@@ -75,13 +55,19 @@ if uploaded_file is not None:
 
             formatted_transcript += f"{speaker}: {line}\n"
 
-    # Display Formatted Transcript
+    # Show Formatted Transcript
     st.subheader("Formatted Transcript")
     st.text(formatted_transcript)
 
-    # Load Phi-3
+    # Load Phi-3 Model
     st.write("Loading Phi-3 Mini model...")
-    pipe = load_phi3()
+
+    pipe = pipeline(
+        "text-generation",
+        model="microsoft/Phi-3-mini-4k-instruct",
+        torch_dtype=torch.float32,
+        device_map="auto"
+    )
 
     # Prompt
     prompt = f"""
@@ -104,29 +90,29 @@ STRICT JSON ONLY.
 """
 
     # Generate Analysis
-    st.write("Generating AI analysis...")
+    st.write("Generating analysis...")
+
+    response = pipe(
+        prompt,
+        max_new_tokens=300
+    )
+
+    output = response[0]["generated_text"]
+
+    start = output.find("{")
+    end = output.rfind("}") + 1
+
+    json_output = output[start:end]
 
     try:
 
-        response = pipe(
-            prompt,
-            max_new_tokens=150
-        )
-
-        output = response[0]["generated_text"]
-
-        start = output.find("{")
-        end = output.rfind("}") + 1
-
-        json_output = output[start:end]
-
         data = json.loads(json_output)
 
-        # JSON Report
+        # Show JSON Report
         st.subheader("AI Analysis Report (JSON)")
         st.json(data)
 
-        # Ensure List Format
+        # Convert string to list if needed
         if isinstance(data["strengths"], str):
             data["strengths"] = [data["strengths"]]
 
@@ -159,12 +145,12 @@ STRICT JSON ONLY.
 • {" ".join(data["recommended_next_steps"])}
 """
 
-        # Display Markdown Report
+        # Show Markdown Report
         st.subheader("Readable Markdown Report")
         st.markdown(markdown_report)
 
     except Exception as e:
 
-        st.error("Failed to generate AI analysis.")
+        st.error("Failed to parse model output.")
 
-        st.write(str(e))
+        st.write(output)
