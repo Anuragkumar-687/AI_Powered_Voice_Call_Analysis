@@ -1,46 +1,30 @@
-import streamlit as st
+import gradio as gr
 import whisper
 import torch
 import json
 from transformers import pipeline
 
-st.title("AI-Powered Voice Call Analysis")
+# Load Whisper
+whisper_model = whisper.load_model("tiny")
 
-st.write("Upload an audio file to analyze customer-agent conversations.")
-
-uploaded_file = st.file_uploader(
-    "Upload Audio File",
-    type=["mp3", "wav", "m4a"]
+# Load Phi-3 Mini
+pipe = pipeline(
+    "text-generation",
+    model="microsoft/Phi-3-mini-4k-instruct",
+    device=-1
 )
 
-if uploaded_file is not None:
-
-    # Save uploaded audio
-    with open("temp_audio.wav", "wb") as f:
-        f.write(uploaded_file.read())
-
-    # Load Whisper
-    st.write("Loading Whisper model...")
-    model = whisper.load_model("small")
+def analyze_call(audio_file):
 
     # Transcribe Audio
-    st.write("Transcribing audio...")
-
-    result = model.transcribe(
-        "temp_audio.wav",
-        language="hi",
-        task="translate",
-        fp16=False,
-        temperature=0
+    result = whisper_model.transcribe(
+        audio_file,
+        fp16=False
     )
 
     transcript = result["text"]
 
-    # Show Raw Transcript
-    st.subheader("Raw Transcript")
-    st.write(transcript)
-
-    # Format Transcript with Labels
+    # Format Transcript
     lines = transcript.split(".")
 
     formatted_transcript = ""
@@ -54,20 +38,6 @@ if uploaded_file is not None:
             speaker = "Agent" if i % 2 == 0 else "Customer"
 
             formatted_transcript += f"{speaker}: {line}\n"
-
-    # Show Formatted Transcript
-    st.subheader("Formatted Transcript")
-    st.text(formatted_transcript)
-
-    # Load Phi-3 Model
-    st.write("Loading Phi-3 Mini model...")
-
-    pipe = pipeline(
-        "text-generation",
-        model="microsoft/Phi-3-mini-4k-instruct",
-        torch_dtype=torch.float32,
-        device_map="auto"
-    )
 
     # Prompt
     prompt = f"""
@@ -89,12 +59,10 @@ Transcript:
 STRICT JSON ONLY.
 """
 
-    # Generate Analysis
-    st.write("Generating analysis...")
-
+    # Generate AI Analysis
     response = pipe(
         prompt,
-        max_new_tokens=300
+        max_new_tokens=80
     )
 
     output = response[0]["generated_text"]
@@ -108,49 +76,31 @@ STRICT JSON ONLY.
 
         data = json.loads(json_output)
 
-        # Show JSON Report
-        st.subheader("AI Analysis Report (JSON)")
-        st.json(data)
+    except:
 
-        # Convert string to list if needed
-        if isinstance(data["strengths"], str):
-            data["strengths"] = [data["strengths"]]
+        data = {
+            "error": "Failed to parse model output"
+        }
 
-        if isinstance(data["improvement_areas"], str):
-            data["improvement_areas"] = [data["improvement_areas"]]
-
-        if isinstance(data["recommended_next_steps"], str):
-            data["recommended_next_steps"] = [data["recommended_next_steps"]]
-
-        # Markdown Report
-        markdown_report = f"""
+    markdown_report = f"""
 # AI Voice Call Analysis Report
 
-## Call Summary
-{data["call_summary"]}
+## Formatted Transcript
+{formatted_transcript}
 
-## Sentiment
-{data["sentiment"]}
-
-## Agent Score
-{data["agent_score_out_of_10"]}/10
-
-## Strengths
-• {" ".join(data["strengths"])}
-
-## Improvement Areas
-• {" ".join(data["improvement_areas"])}
-
-## Recommended Next Steps
-• {" ".join(data["recommended_next_steps"])}
+## JSON Report
+{json.dumps(data, indent=2)}
 """
 
-        # Show Markdown Report
-        st.subheader("Readable Markdown Report")
-        st.markdown(markdown_report)
+    return markdown_report
 
-    except Exception as e:
+# Gradio UI
+interface = gr.Interface(
+    fn=analyze_call,
+    inputs=gr.Audio(type="filepath"),
+    outputs="markdown",
+    title="AI-Powered Voice Call Analysis",
+    description="Upload a customer-agent call recording for AI analysis."
+)
 
-        st.error("Failed to parse model output.")
-
-        st.write(output)
+interface.launch()
