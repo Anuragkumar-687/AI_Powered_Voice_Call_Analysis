@@ -63,9 +63,11 @@ if uploaded_file is not None:
     st.write("Loading Phi-3 Mini model...")
 
     pipe = pipeline(
-    "text-generation",
-    model="google/gemma-2b-it"
-)
+        "text-generation",
+        model="microsoft/Phi-3-mini-4k-instruct",
+        torch_dtype=torch.float32,
+        device_map="auto"
+    )
 
     # Prompt
     prompt = f"""
