@@ -1,0 +1,5 @@
+openai-whisper
+transformers
+accelerate
+torch
+sentencepiece
