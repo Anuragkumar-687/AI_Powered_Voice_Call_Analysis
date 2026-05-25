@@ -1,6 +1,6 @@
-streamlit
+gradio
 openai-whisper
 transformers
 accelerate
-torch
+torch==2.2.2
 sentencepiece
