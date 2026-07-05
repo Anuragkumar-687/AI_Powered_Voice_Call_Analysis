@@ -1,32 +1,30 @@
-# AI-Powered Voice Call Analysis Using Open-Source SLMs
+# 🎧 AI-Powered Voice Call Analysis Using Open-Source SLMs
 
-## Overview
-
-This project is an AI-powered voice call analysis pipeline built using open-source technologies.
-
-The system accepts a recorded customer support call, transcribes the audio using Whisper speech-to-text, and analyzes the conversation using the Phi-3 Mini Small Language Model (SLM) to generate structured coaching feedback for the call agent.
-
-The generated output includes:
-- Call Summary
-- Sentiment Analysis
-- Agent Score
-- Strengths
-- Improvement Areas
-- Recommended Next Steps
+An end-to-end AI pipeline that analyzes customer support calls and generates structured coaching feedback using open-source models.
 
 ---
 
-## Features
+## 🚀 Overview
 
-- Audio ingestion (.mp3, .wav, .m4a)
-- Whisper speech-to-text transcription
-- Hindi-to-English transcription support
-- Agent and Customer transcript formatting
-- Phi-3 Mini conversational analysis
-- Structured JSON report generation
-- Human-readable Markdown report generation
+This project processes recorded customer support calls and transforms them into actionable insights.
+
+It uses **Whisper** for speech-to-text transcription and **Phi-3 Mini (SLM)** for intelligent conversation analysis, producing structured and human-readable reports for agent performance improvement.
 
 ---
+
+## ✨ Key Features
+
+- 🎙️ Supports audio formats: `.mp3`, `.wav`, `.m4a`
+- 🧠 Whisper-based speech-to-text transcription
+- 🌐 Hindi → English transcription support
+- 👥 Speaker separation (Agent vs Customer formatting)
+- 🤖 AI-powered analysis using Phi-3 Mini
+- 📊 Structured JSON report generation
+- 📝 Human-readable Markdown report
+- ⚡ Lightweight and runs on Google Colab
+
+---
+
 
 ## Technologies Used
 
